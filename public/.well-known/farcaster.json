@@ -1,0 +1,26 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "SignalBase",
+    "iconUrl": "https://minibaseapp.vercel.app/icon.png",
+    "homeUrl": "https://minibaseapp.vercel.app",
+    "imageUrl": "https://minibaseapp.vercel.app/og.png",
+    "buttonTitle": "Open Mini App",
+    "splashImageUrl": "https://minibaseapp.vercel.app/splash.png",
+    "splashBackgroundColor": "#6200EA",
+    "screenshotUrls": [
+      "https://minibaseapp.vercel.app/screenshots/home.png"
+    ],
+    "subtitle": "Signal Miner • Base Sepolia",
+    "tagline": "Active Mining on Base",
+    "description": "SignalBase lets you run 24h mining sessions and track emissions on Base.",
+    "primaryCategory": "finance",
+    "tags": ["base", "farcaster", "miniapp", "mining", "signals"]
+  }
+}
+
