@@ -35,7 +35,9 @@ const Layout: React.FC<LayoutProps> = ({ currentTab, onChangeTab, children }) =>
           </div>
         </div>
       )}
-      <main className="p-4">{children}</main>
+      <main className="p-4">
+        <div className="max-w-md mx-auto">{children}</div>
+      </main>
       <Navbar currentTab={currentTab} onChangeTab={onChangeTab} />
     </div>
   );

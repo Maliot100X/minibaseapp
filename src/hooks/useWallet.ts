@@ -27,31 +27,31 @@ export const useWallet = (): WalletState => {
       const hasBase = !!(anyWindow.base && anyWindow.base.miniApp);
       setHasBaseEnv(hasBase);
 
-       const eth = anyWindow.ethereum;
-       if (eth && eth.request) {
-         const readChain = async () => {
-           try {
-             const raw = await eth.request({ method: 'eth_chainId' });
-             const id = typeof raw === 'string' ? parseInt(raw, 16) : Number(raw);
-             setChainId(Number.isNaN(id) ? null : id);
-           } catch {
-             setChainId(null);
-           }
-         };
+      const eth = anyWindow.ethereum;
+      if (eth && eth.request) {
+        const readChain = async () => {
+          try {
+            const raw = await eth.request({ method: 'eth_chainId' });
+            const id = typeof raw === 'string' ? parseInt(raw, 16) : Number(raw);
+            setChainId(Number.isNaN(id) ? null : id);
+          } catch {
+            setChainId(null);
+          }
+        };
 
-         readChain();
+        readChain();
 
-         const handleChainChanged = (rawId: string | number) => {
-           const id = typeof rawId === 'string' ? parseInt(rawId, 16) : Number(rawId);
-           setChainId(Number.isNaN(id) ? null : id);
-         };
+        const handleChainChanged = (rawId: string | number) => {
+          const id = typeof rawId === 'string' ? parseInt(rawId, 16) : Number(rawId);
+          setChainId(Number.isNaN(id) ? null : id);
+        };
 
-         eth.on?.('chainChanged', handleChainChanged);
+        eth.on?.('chainChanged', handleChainChanged);
 
-         return () => {
-           eth.removeListener?.('chainChanged', handleChainChanged);
-         };
-       }
+        return () => {
+          eth.removeListener?.('chainChanged', handleChainChanged);
+        };
+      }
     } else {
       setHasBaseEnv(false);
     }
@@ -60,7 +60,11 @@ export const useWallet = (): WalletState => {
   const connectBaseWallet = async () => {
     if (typeof window === 'undefined') return;
     const anyWindow = window as any;
-    if (!anyWindow.base || !anyWindow.base.miniApp || !anyWindow.ethereum || !anyWindow.ethereum.request) {
+    if (!anyWindow.base || !anyWindow.base.miniApp) {
+      alert('Base wallet is only available inside the Base mini app.');
+      return;
+    }
+    if (!anyWindow.ethereum || !anyWindow.ethereum.request) {
       return;
     }
 

@@ -7,12 +7,8 @@ import { useTokenBalance } from '../hooks/useTokenBalance';
 
 const Profile: React.FC = () => {
   const { username, fid, userAddress, context, sync } = useFarcaster();
-  const {
-    address: activeWalletAddress,
-    connectBaseWallet,
-    switchToBaseSepolia,
-    isBaseSepolia,
-  } = useWallet();
+  const { address: activeWalletAddress, connectBaseWallet, switchToBaseSepolia, isBaseSepolia, hasBaseEnv } =
+    useWallet();
   const activeAddress = useAppStore((s) => s.activeAddress);
   const walletSource = useAppStore((s) => s.walletSource);
   const points = useAppStore((s) => s.points);
@@ -95,6 +91,12 @@ const Profile: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (walletSource === 'metamask' && activeAddress) {
+      setMmAddress(activeAddress);
+    }
+  }, [walletSource, activeAddress]);
+
   const handleXUsernameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const raw = event.target.value;
     appStore.setState({ xUsername: raw });
@@ -141,6 +143,7 @@ const Profile: React.FC = () => {
             activeAddress: selected,
             walletSource: 'metamask',
           });
+          await switchToBaseSepolia();
         }
       } catch (err) {
         console.error(err);
@@ -266,7 +269,10 @@ const Profile: React.FC = () => {
             <button
               type="button"
               onClick={handleConnectBaseWallet}
-              className="w-full text-left px-3 py-2 rounded-lg border border-gray-700 bg-black/40 text-[12px] flex items-center justify-between"
+              disabled={!hasBaseEnv}
+              className={`w-full text-left px-3 py-2 rounded-lg border border-gray-700 bg-black/40 text-[12px] flex items-center justify-between ${
+                !hasBaseEnv ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               <span>Connect Base Wallet</span>
               {walletSource === 'base' && (

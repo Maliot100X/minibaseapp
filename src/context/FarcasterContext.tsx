@@ -27,6 +27,7 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const username = useAppStore((s) => s.username);
   const fid = useAppStore((s) => s.fid);
   const activeAddress = useAppStore((s) => s.activeAddress);
+  const custodyAddress = useAppStore((s) => s.custodyAddress);
   const isLoaded = useAppStore((s) => s.contextReady);
 
   const sync = async () => {
@@ -81,7 +82,7 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     <FarcasterContext.Provider
       value={{
         context,
-        userAddress: activeAddress,
+        userAddress: custodyAddress || activeAddress,
         username,
         fid,
         isLoaded,
