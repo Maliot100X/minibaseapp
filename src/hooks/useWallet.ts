@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { appStore, useAppStore } from '../state/appStore';
+import { getEthereumProvider, requestFarcasterAddresses } from '../lib/farcaster';
 
 interface WalletState {
   address: string | null;
@@ -26,16 +27,14 @@ export const useWallet = (): WalletState => {
   const BASE_MAINNET_HEX = '0x2105';
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const anyWindow = window as any;
-      const hasBase = !!(anyWindow.base && anyWindow.base.miniApp);
+    const init = async () => {
+      const eth = await getEthereumProvider();
+      const hasBase = !!(eth && (eth as any).request);
       setHasBaseEnv(hasBase);
-
-      const eth = anyWindow.ethereum;
-      if (eth && eth.request) {
+      if (eth && (eth as any).request) {
         const readChain = async () => {
           try {
-            const raw = await eth.request({ method: 'eth_chainId' });
+            const raw = await (eth as any).request({ method: 'eth_chainId' });
             const id = typeof raw === 'string' ? parseInt(raw, 16) : Number(raw);
             setChainId(Number.isNaN(id) ? null : id);
           } catch {
@@ -43,57 +42,46 @@ export const useWallet = (): WalletState => {
           }
         };
 
-        readChain();
+        await readChain();
 
         const handleChainChanged = (rawId: string | number) => {
           const id = typeof rawId === 'string' ? parseInt(rawId, 16) : Number(rawId);
           setChainId(Number.isNaN(id) ? null : id);
         };
 
-        eth.on?.('chainChanged', handleChainChanged);
+        (eth as any).on?.('chainChanged', handleChainChanged);
 
         return () => {
-          eth.removeListener?.('chainChanged', handleChainChanged);
+          (eth as any).removeListener?.('chainChanged', handleChainChanged);
         };
+      } else {
+        setHasBaseEnv(false);
       }
-    } else {
-      setHasBaseEnv(false);
-    }
+    };
+
+    init();
   }, []);
 
   const connectBaseWallet = async () => {
-    if (typeof window === 'undefined') return;
-    const anyWindow = window as any;
-    if (!anyWindow.base || !anyWindow.base.miniApp) {
-      alert('Base wallet is only available inside the Base mini app.');
+    const accounts = await requestFarcasterAddresses();
+    if (!accounts || accounts.length === 0) {
+      alert('Wallet connection was declined or is unavailable.');
       return;
     }
-    if (!anyWindow.ethereum || !anyWindow.ethereum.request) {
-      return;
-    }
-
-    try {
-      const accounts: string[] = await anyWindow.ethereum.request({ method: 'eth_requestAccounts' });
-      if (accounts && accounts.length > 0) {
-        appStore.setState({
-          baseEmbeddedAddress: accounts[0],
-          activeAddress: accounts[0],
-          walletSource: 'base',
-        });
-      }
-    } catch (error) {
-      console.error(error);
-    }
+    const address = accounts[0];
+    appStore.setState({
+      baseEmbeddedAddress: address,
+      activeAddress: address,
+      walletSource: 'base',
+    });
   };
 
   const switchToBaseSepolia = async () => {
-    if (typeof window === 'undefined') return;
-    const anyWindow = window as any;
-    const eth = anyWindow.ethereum;
-    if (!eth || !eth.request) return;
+    const eth = await getEthereumProvider();
+    if (!eth || !(eth as any).request) return;
 
     try {
-      await eth.request({
+      await (eth as any).request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: BASE_SEPOLIA_HEX }],
       });
@@ -104,7 +92,7 @@ export const useWallet = (): WalletState => {
           'https://base-sepolia.g.alchemy.com/v2/wY-wCVXDnFCO_NWLr8aC5';
 
         try {
-          await eth.request({
+          await (eth as any).request({
             method: 'wallet_addEthereumChain',
             params: [
               {
@@ -128,13 +116,11 @@ export const useWallet = (): WalletState => {
   };
 
   const switchToBaseMainnet = async () => {
-    if (typeof window === 'undefined') return;
-    const anyWindow = window as any;
-    const eth = anyWindow.ethereum;
-    if (!eth || !eth.request) return;
+    const eth = await getEthereumProvider();
+    if (!eth || !(eth as any).request) return;
 
     try {
-      await eth.request({
+      await (eth as any).request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: BASE_MAINNET_HEX }],
       });
@@ -145,7 +131,7 @@ export const useWallet = (): WalletState => {
           'https://mainnet.base.org';
 
         try {
-          await eth.request({
+          await (eth as any).request({
             method: 'wallet_addEthereumChain',
             params: [
               {

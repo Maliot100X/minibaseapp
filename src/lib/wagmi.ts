@@ -10,10 +10,12 @@ export const publicClient = createPublicClient({
   transport: http(rpcUrl),
 });
 
-export const createSignalWalletClient = () =>
-  typeof window !== 'undefined' && (window as any).ethereum
-    ? createWalletClient({
-        chain: baseSepoliaChain as Chain,
-        transport: custom((window as any).ethereum),
-      })
-    : null;
+export const createSignalWalletClient = () => {
+  if (typeof window === 'undefined') return null;
+  const anyWindow = window as any;
+  if (!anyWindow.ethereum) return null;
+  return createWalletClient({
+    chain: baseSepoliaChain as Chain,
+    transport: custom(anyWindow.ethereum),
+  });
+};

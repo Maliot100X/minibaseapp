@@ -7,6 +7,7 @@ import { createWalletClient, custom, parseUnits } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { SIGNAL_TOKEN_ADDRESS, signalAbi } from '../config/contracts';
 import { publicClient } from '../config/client';
+import { getEthereumProvider } from '../lib/farcaster';
 
 const Swap: React.FC = () => {
   const { address, isBaseSepolia, switchToBaseSepolia } = useWallet();
@@ -39,7 +40,23 @@ const Swap: React.FC = () => {
 
   const handleSwap = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!address || !window.ethereum || !canSwap || !isBaseSepolia) return;
+    if (!address) {
+      setError('Connect a wallet before swapping.');
+      return;
+    }
+    const eth = await getEthereumProvider();
+    if (!eth || !(eth as any).request) {
+      setError('No Ethereum wallet found. Install Base Wallet, MetaMask, or another compatible wallet.');
+      return;
+    }
+    if (!isBaseSepolia) {
+      setError('Switch to Base Sepolia network to swap.');
+      return;
+    }
+    if (!canSwap) {
+      setError('Swap conditions not met. Check points, amount, and treasury balance.');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -54,7 +71,7 @@ const Swap: React.FC = () => {
       // 2. Call ERC20.transfer from distributor wallet to user
       const client = createWalletClient({
         chain: baseSepolia,
-        transport: custom(window.ethereum),
+        transport: custom(eth as any),
       });
 
       const [distributor] = await client.requestAddresses();

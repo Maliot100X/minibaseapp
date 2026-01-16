@@ -34,8 +34,9 @@ const Tasks: React.FC = () => {
         }
       }
       completeTask(id, reward);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert(e.message || 'Task failed');
     } finally {
       setLoading(null);
     }
@@ -60,15 +61,19 @@ const Tasks: React.FC = () => {
         }
       }
       completeRefreshTask(id, reward, REFRESH_COOLDOWN_MS);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert(e.message || 'Task failed');
     } finally {
       setLoading(null);
     }
   };
 
   const verifyBaseTx = async () => {
-    if (!address) return false;
+    if (!address) {
+      alert('Connect your wallet first!');
+      return false;
+    }
     const count = await publicClient.getTransactionCount({ address: address as `0x${string}` });
     return count > 0;
   };

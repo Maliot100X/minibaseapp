@@ -7,6 +7,7 @@ import { createWalletClient, custom, parseUnits } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { SIGNAL_TOKEN_ADDRESS, STAKING_VAULT_ADDRESS, signalAbi } from '../config/contracts';
 import { publicClient } from '../config/client';
+import { getEthereumProvider } from '../lib/farcaster';
 
 const Stake: React.FC = () => {
   const { address, isBaseSepolia, switchToBaseSepolia } = useWallet();
@@ -38,8 +39,24 @@ const Stake: React.FC = () => {
   }, [isStaked, stakeUnlockTime, lockDays]);
 
   const handleStake = async () => {
-    if (!address || !window.ethereum || !isBaseSepolia) return;
-    if (!parsedAmount || parsedAmount <= 0) return;
+    if (!address) {
+      setError('Connect a wallet before staking.');
+      return;
+    }
+
+    const eth = await getEthereumProvider();
+    if (!eth || !(eth as any).request) {
+      setError('No Ethereum wallet found. Install Base Wallet, MetaMask, or another compatible wallet.');
+      return;
+    }
+    if (!isBaseSepolia) {
+      setError('Switch to Base Sepolia network to stake.');
+      return;
+    }
+    if (!parsedAmount || parsedAmount <= 0) {
+      setError('Enter a valid staking amount.');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -49,7 +66,7 @@ const Stake: React.FC = () => {
     try {
       const client = createWalletClient({
         chain: baseSepolia,
-        transport: custom(window.ethereum),
+        transport: custom(eth as any),
       });
 
       const [account] = await client.requestAddresses();

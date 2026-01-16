@@ -9,8 +9,9 @@ interface MineProps {
 }
 
 const Mine: React.FC<MineProps> = ({ onNavigate }) => {
-  const { address, isBaseSepolia } = useWallet();
+  const { address, isBaseSepolia, isBaseMainnet } = useWallet();
 
+  const walletSource = useAppStore((s) => s.walletSource);
   const points = useAppStore((s) => s.points);
   const tier = useAppStore((s) => s.tier);
   const isStaked = useAppStore((s) => s.isStaked);
@@ -82,7 +83,10 @@ const Mine: React.FC<MineProps> = ({ onNavigate }) => {
   }, [miningActive, lastActivation, tier, stakeMultiplier]);
 
   const handleStartMining = () => {
-    if (!address || !isBaseSepolia) {
+    if (!address) {
+      return;
+    }
+    if (walletSource !== 'farcaster' && !isBaseSepolia && !isBaseMainnet) {
       return;
     }
     startMining();
@@ -103,7 +107,7 @@ const Mine: React.FC<MineProps> = ({ onNavigate }) => {
       <div className="text-center space-y-2">
         <h1 className="text-[20px] font-semibold">Signal Miner</h1>
         <p className="text-xs text-gray-400">
-          24h mining sessions • Base Sepolia
+          24h mining sessions • Base Sepolia/Mainnet or Farcaster
         </p>
         <p className="text-[10px] text-gray-500">
           For full emission math and tier effects, read the Whitepaper tab in More.
@@ -200,15 +204,24 @@ const Mine: React.FC<MineProps> = ({ onNavigate }) => {
         <div className="space-y-3">
           {!miningActive && (
              <button
-             onClick={handleStartMining}
-             disabled={!address || !isBaseSepolia} 
-             className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-3 rounded-lg flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-           >
-             <Play size={16} />
-             <span>
-               {!address ? 'Connect Wallet to Mine' : !isBaseSepolia ? 'Switch to Base Sepolia' : 'START MINING'}
-             </span>
-           </button>
+            onClick={handleStartMining}
+            disabled={
+              !address ||
+              (walletSource !== 'farcaster' && !isBaseSepolia && !isBaseMainnet)
+            } 
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-3 rounded-lg flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Play size={16} />
+            <span>
+              {!address
+                ? 'Connect Wallet to Mine'
+                : walletSource !== 'farcaster' && !isBaseSepolia && !isBaseMainnet
+                ? 'Switch to Base (Sepolia/Mainnet)'
+                : walletSource === 'farcaster'
+                ? 'Start Mining with Farcaster'
+                : 'START MINING'}
+            </span>
+          </button>
           )}
 
           {miningActive && (

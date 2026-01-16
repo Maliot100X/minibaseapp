@@ -8,6 +8,7 @@ import { baseSepolia } from 'viem/chains';
 import { SIGNAL_TOKEN_ADDRESS, TREASURY_ADDRESS, signalAbi } from '../config/contracts';
 import { publicClient } from '../config/client';
 import { parseUnits } from 'viem';
+import { getEthereumProvider } from '../lib/farcaster';
 
 interface Tier {
   id: number;
@@ -37,7 +38,20 @@ const Tiers: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleBuy = async (tier: Tier) => {
-    if (!address || !window.ethereum || !isBaseSepolia) return;
+    if (!address) {
+      setError('Connect a wallet before buying a tier.');
+      return;
+    }
+
+    const eth = await getEthereumProvider();
+    if (!eth || !(eth as any).request) {
+      setError('No Ethereum wallet found. Install Base Wallet, MetaMask, or another compatible wallet.');
+      return;
+    }
+    if (!isBaseSepolia) {
+      setError('Switch to Base Sepolia network to buy tiers.');
+      return;
+    }
     
     setBuyingId(tier.id);
     setError(null);
@@ -48,17 +62,16 @@ const Tiers: React.FC = () => {
       const balanceBigInt = parseUnits(balance || '0', 18);
 
       if (balanceBigInt < price) {
-        throw new Error("Insufficient SIGNAL balance");
+        throw new Error('Insufficient SIGNAL balance');
       }
 
       const client = createWalletClient({
         chain: baseSepolia,
-        transport: custom(window.ethereum),
+        transport: custom(eth as any),
       });
 
       const [account] = await client.requestAddresses();
 
-      // Transfer SIGNAL to Treasury
       const hash = await client.writeContract({
         address: SIGNAL_TOKEN_ADDRESS,
         abi: signalAbi,
@@ -74,11 +87,11 @@ const Tiers: React.FC = () => {
         upgradeTier(tier.id);
         refetch();
       } else {
-        throw new Error("Transaction failed onchain");
+        throw new Error('Transaction failed onchain');
       }
     } catch (e: any) {
       console.error(e);
-      setError(e.message || "Purchase failed");
+      setError(e.message || 'Purchase failed');
     } finally {
       setBuyingId(null);
     }

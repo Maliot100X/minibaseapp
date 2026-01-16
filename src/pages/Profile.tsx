@@ -4,6 +4,7 @@ import { useFarcaster } from '../context/FarcasterContext';
 import { appStore, useAppStore } from '../state/appStore';
 import { useWallet } from '../hooks/useWallet';
 import { useTokenBalance } from '../hooks/useTokenBalance';
+import { getEthereumProvider, farcasterSdk } from '../lib/farcaster';
 
 const Profile: React.FC = () => {
   const { username, fid, userAddress, context, sync, displayName } = useFarcaster();
@@ -12,7 +13,6 @@ const Profile: React.FC = () => {
     connectBaseWallet,
     switchToBaseSepolia,
     isBaseSepolia,
-    hasBaseEnv,
     chainId,
     isBaseMainnet,
     switchToBaseMainnet,
@@ -123,15 +123,48 @@ const Profile: React.FC = () => {
     setXConnected(true);
   };
 
+  const handleConnectFarcasterWallet = async () => {
+    try {
+      const result = await (farcasterSdk as any).wallet.requestAddresses();
+      let addresses: string[] = [];
+      if (Array.isArray(result)) {
+        addresses = result
+          .map((v: any) =>
+            typeof v === 'string'
+              ? v
+              : v && typeof v === 'object'
+              ? v.address || v.value || null
+              : null
+          )
+          .filter((v: string | null): v is string => !!v);
+      } else if (result && Array.isArray((result as any).addresses)) {
+        addresses = (result as any).addresses
+          .map((v: any) =>
+            typeof v === 'string'
+              ? v
+              : v && typeof v === 'object'
+              ? v.address || v.value || null
+              : null
+          )
+          .filter((v: string | null): v is string => !!v);
+      }
+      if (!addresses.length) {
+        alert('No Farcaster wallet address returned.');
+        return;
+      }
+      const addr = addresses[0];
+      appStore.setState({
+        activeAddress: addr,
+        walletSource: 'farcaster',
+      });
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || 'Failed to connect Farcaster wallet.');
+    }
+  };
+
   const handleConnectBaseWallet = async () => {
     await connectBaseWallet();
-    const baseAddr = appStore.getState().baseEmbeddedAddress;
-    if (baseAddr) {
-      appStore.setState({
-        activeAddress: baseAddr,
-        walletSource: 'base',
-      });
-    }
   };
 
   const handleEnsureBaseSepolia = async () => {
@@ -143,25 +176,30 @@ const Profile: React.FC = () => {
   };
 
   const connectMetaMask = async () => {
-    if (window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const selected = accounts[0] as string | undefined;
-        if (!selected) return;
-        const confirmUse = window.confirm('Use this MetaMask address as your active wallet for SIGNAL MINER?');
-        setMmAddress(selected);
-        if (confirmUse) {
-          appStore.setState({
-            activeAddress: selected,
-            walletSource: 'metamask',
-          });
-          await switchToBaseSepolia();
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    } else {
-      alert("MetaMask not found");
+    if (typeof window === 'undefined') {
+      alert('No browser environment for MetaMask.');
+      return;
+    }
+
+    const anyWindow = window as any;
+    const eth = anyWindow.ethereum || (await getEthereumProvider());
+    if (!eth || !(eth as any).request) {
+      alert('No Ethereum provider found. Install MetaMask or a compatible wallet.');
+      return;
+    }
+
+    try {
+      const accounts = await (eth as any).request({ method: 'eth_requestAccounts' });
+      const selected = accounts[0] as string | undefined;
+      if (!selected) return;
+      setMmAddress(selected);
+      appStore.setState({
+        activeAddress: selected,
+        walletSource: 'metamask',
+      });
+      await switchToBaseSepolia();
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -235,7 +273,7 @@ const Profile: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-gray-900 p-4 rounded-xl border border-gray-800">
+        <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-2">
           <div className="flex items-center space-x-3 mb-2">
             <Wallet className="text-blue-500" size={20} />
             <span className="font-bold text-[14px]">Active Wallet</span>
@@ -255,6 +293,11 @@ const Profile: React.FC = () => {
                 : 'Unknown'}
             </div>
           )}
+          {walletSource === 'farcaster' && (
+            <div className="text-[11px] text-yellow-400">
+              Onchain actions (Boost, Swap, Stake) require a connected Ethereum wallet like Base or MetaMask.
+            </div>
+          )}
         </div>
 
         <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 space-y-3">
@@ -262,6 +305,18 @@ const Profile: React.FC = () => {
             Wallet Sources
           </div>
           <div className="flex flex-col space-y-2">
+            {context && (
+              <button
+                type="button"
+                onClick={handleConnectFarcasterWallet}
+                className="w-full text-left px-3 py-2 rounded-lg border border-purple-600 bg-black/40 text-[12px] flex items-center justify-between"
+              >
+                <span>Connect Farcaster Wallet</span>
+                {walletSource === 'farcaster' && effectiveAddress && (
+                  <span className="text-green-400 text-[10px] font-mono">CONNECTED</span>
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -278,19 +333,18 @@ const Profile: React.FC = () => {
                 <span className="text-green-400 text-[10px] font-mono">ACTIVE</span>
               )}
             </button>
-            <button
-              type="button"
-              onClick={handleConnectBaseWallet}
-              disabled={!hasBaseEnv}
-              className={`w-full text-left px-3 py-2 rounded-lg border border-gray-700 bg-black/40 text-[12px] flex items-center justify-between ${
-                !hasBaseEnv ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              <span>Connect Base Wallet</span>
-              {walletSource === 'base' && (
-                <span className="text-green-400 text-[10px] font-mono">ACTIVE</span>
-              )}
-            </button>
+            {!context && (
+              <button
+                type="button"
+                onClick={handleConnectBaseWallet}
+                className="w-full text-left px-3 py-2 rounded-lg border border-gray-700 bg-black/40 text-[12px] flex items-center justify-between"
+              >
+                <span>Connect Base Wallet</span>
+                {walletSource === 'base' && (
+                  <span className="text-green-400 text-[10px] font-mono">ACTIVE</span>
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={handleEnsureBaseSepolia}
@@ -318,6 +372,18 @@ const Profile: React.FC = () => {
               >
                 {isBaseMainnet ? 'OK' : 'SWITCH'}
               </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                appStore.setState({
+                  activeAddress: null,
+                  walletSource: 'none',
+                });
+              }}
+              className="w-full text-left px-3 py-2 rounded-lg border border-red-700 bg-black/40 text-[12px] flex items-center justify-between"
+            >
+              <span>Disconnect Wallet</span>
             </button>
           </div>
         </div>
@@ -369,29 +435,35 @@ const Profile: React.FC = () => {
           </div>
         )}
 
-        <div className="bg-gray-900 p-4 rounded-xl border border-gray-800">
-          <div className="flex justify-between items-center">
-            <span className="font-bold flex items-center gap-2">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" className="w-5 h-5" alt="MetaMask" />
+        {!context && (
+          <div className="bg-gray-900 p-4 rounded-xl border border-gray-800">
+            <div className="flex justify-between items-center">
+              <span className="font-bold flex items-center gap-2">
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg"
+                  className="w-5 h-5"
+                  alt="MetaMask"
+                />
                 MetaMask
-            </span>
-            {mmAddress ? (
-              <span className="text-green-500 text-sm">Connected</span>
-            ) : (
-              <button 
-                onClick={connectMetaMask}
-                className="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-500 transition-colors"
-              >
-                Connect
-              </button>
+              </span>
+              {walletSource === 'metamask' && activeAddress ? (
+                <span className="text-green-500 text-sm">Connected</span>
+              ) : (
+                <button
+                  onClick={connectMetaMask}
+                  className="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-500 transition-colors"
+                >
+                  Connect
+                </button>
+              )}
+            </div>
+            {mmAddress && (
+              <div className="font-mono text-xs text-gray-400 break-all mt-2 bg-black p-3 rounded border border-gray-800 select-all">
+                {mmAddress}
+              </div>
             )}
           </div>
-          {mmAddress && (
-             <div className="font-mono text-xs text-gray-400 break-all mt-2 bg-black p-3 rounded border border-gray-800 select-all">
-               {mmAddress}
-             </div>
-          )}
-        </div>
+        )}
 
         <a
           href={

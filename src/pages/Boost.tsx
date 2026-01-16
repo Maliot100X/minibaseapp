@@ -5,6 +5,7 @@ import { createWalletClient, custom, parseEther, parseUnits } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { BOOST_RECEIVER_ADDRESS } from '../config/contracts';
 import { publicClient } from '../config/client';
+import { getEthereumProvider } from '../lib/farcaster';
 
 const Boost: React.FC = () => {
   const { address, isBaseSepolia, switchToBaseSepolia } = useWallet();
@@ -46,12 +47,28 @@ const Boost: React.FC = () => {
   }, [boostUrl]);
 
   const handleBoost = async () => {
-    if (!address || !window.ethereum || !boostUrl || !isBaseSepolia) return;
+    if (!boostUrl) {
+      return;
+    }
+    if (!address) {
+      alert('Connect a wallet before boosting.');
+      return;
+    }
+
+    const eth = await getEthereumProvider();
+    if (!eth || !(eth as any).request) {
+      alert('No Ethereum wallet found. Install Base Wallet, MetaMask, or another compatible wallet.');
+      return;
+    }
+    if (!isBaseSepolia) {
+      alert('Switch to Base Sepolia network to boost.');
+      return;
+    }
     setBoosting(true);
     try {
       const client = createWalletClient({
         chain: baseSepolia,
-        transport: custom(window.ethereum),
+        transport: custom(eth as any),
       });
       const [account] = await client.requestAddresses();
 
