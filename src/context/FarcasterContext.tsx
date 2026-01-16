@@ -93,6 +93,11 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             ? userAny.verified_addresses[0]
             : null);
 
+        // Determine active address:
+        // 1. If we have explicit wallet access, use it.
+        // 2. If not, use custody/verified address (Read-Only Mode) to ensure user data is pulled.
+        const activeAddr = walletAddresses.length > 0 ? walletAddresses[0] : fallback;
+
         appStore.setState({
           farcasterContext: ctx as FrameContext,
           fid: ctx.user.fid,
@@ -102,11 +107,8 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           farcasterBio: bio,
           farcasterWallets: allWallets,
           custodyAddress: fallback,
-          // If we got a real wallet address, set it as active
-          ...(walletAddresses.length > 0 ? { 
-            activeAddress: walletAddresses[0],
-            walletSource: 'farcaster' 
-          } : {})
+          activeAddress: activeAddr,
+          walletSource: 'farcaster', // Set source to farcaster even if read-only
         });
       } else {
         appStore.setState({

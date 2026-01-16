@@ -1,9 +1,9 @@
 import { createPublicClient, http } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { base } from 'viem/chains';
 
 export const publicClient = createPublicClient({
-  chain: baseSepolia,
+  chain: base,
   transport: http(
-    import.meta.env.VITE_BASE_SEPOLIA_RPC || 'https://sepolia.base.org'
+    import.meta.env.VITE_BASE_MAINNET_RPC || 'https://mainnet.base.org'
   ),
 });

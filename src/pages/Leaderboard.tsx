@@ -24,8 +24,8 @@ const Leaderboard: React.FC = () => {
     try {
       const currentBlock = await publicClient.getBlockNumber();
 
-      const maxChunkSize = 10n;
-      const maxTotalRange = 2000n;
+      const maxChunkSize = 1000n;
+      const maxTotalRange = 10000n;
 
       let desiredRange: bigint;
       if (timeframe === 'daily') {
@@ -93,7 +93,7 @@ const Leaderboard: React.FC = () => {
       setError(null);
     } catch (err: any) {
       console.error('Failed to fetch leaderboard', err);
-      setError('Failed to load leaderboard data from Base Sepolia. Try again shortly.');
+      setError('Failed to load leaderboard data from Base Mainnet. Try again shortly.');
     } finally {
       setLoading(false);
     }

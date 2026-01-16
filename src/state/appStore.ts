@@ -39,65 +39,85 @@ export interface AppState {
 
 type Listener = () => void;
 
-const loadState = () => {
+const DEFAULT_STATE = {
+  points: 0,
+  accumulatedPoints: 0,
+  tier: 0,
+  isStaked: false,
+  stakeAmount: 0,
+  stakeMultiplier: 1,
+  stakeUnlockTime: 0,
+  miningActive: false,
+  lastActivation: 0,
+  tasks: {},
+  taskCooldowns: {},
+  xUsername: null,
+  farcasterDisplayName: null,
+  farcasterPfpUrl: null,
+  farcasterBio: null,
+  farcasterWallets: [],
+};
+
+const loadStateForAddress = (address: string | null) => {
+  if (!address) return { ...DEFAULT_STATE };
   try {
-    const saved = localStorage.getItem('minerState');
-    if (saved) return JSON.parse(saved);
+    const key = `minerState_${address.toLowerCase()}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return { ...DEFAULT_STATE, ...parsed };
+    }
   } catch (error) {
-    console.error(error);
+    console.error('Failed to load state for address', address, error);
+  }
+  return { ...DEFAULT_STATE };
+};
+
+// Load global settings (non-user specific)
+const loadGlobalState = () => {
+  try {
+    const saved = localStorage.getItem('minerGlobalState');
+    if (saved) return JSON.parse(saved);
+  } catch (e) {
+    console.error(e);
   }
   return {
-    points: 0,
-    accumulatedPoints: 0,
-    tier: 0,
-    isStaked: false,
-    stakeAmount: 0,
-    stakeMultiplier: 1,
-    stakeUnlockTime: 0,
-    miningActive: false,
-    lastActivation: 0,
-    tasks: {},
-    taskCooldowns: {},
     activeAddress: null,
     walletSource: 'none',
     custodyAddress: null,
     baseEmbeddedAddress: null,
-    xUsername: null,
-    farcasterDisplayName: null,
-    farcasterPfpUrl: null,
-    farcasterBio: null,
-    farcasterWallets: [],
   };
 };
 
-const savedState = loadState();
+const globalState = loadGlobalState();
+const initialState = loadStateForAddress(globalState.activeAddress);
 
 const state: AppState = {
   farcasterContext: null,
   fid: null,
   username: null,
-  xUsername: savedState.xUsername ?? null,
-  farcasterDisplayName: savedState.farcasterDisplayName ?? null,
-  farcasterPfpUrl: savedState.farcasterPfpUrl ?? null,
-  farcasterBio: savedState.farcasterBio ?? null,
-  farcasterWallets: savedState.farcasterWallets ?? [],
-  custodyAddress: savedState.custodyAddress ?? null,
-  baseEmbeddedAddress: savedState.baseEmbeddedAddress ?? null,
-  activeAddress: savedState.activeAddress ?? null,
-  walletSource: savedState.walletSource ?? 'none',
+  xUsername: initialState.xUsername,
+  farcasterDisplayName: initialState.farcasterDisplayName,
+  farcasterPfpUrl: initialState.farcasterPfpUrl,
+  farcasterBio: initialState.farcasterBio,
+  farcasterWallets: initialState.farcasterWallets,
+  custodyAddress: globalState.custodyAddress,
+  baseEmbeddedAddress: globalState.baseEmbeddedAddress,
+  activeAddress: globalState.activeAddress,
+  walletSource: globalState.walletSource,
   contextReady: false,
-  points: savedState.points,
-  accumulatedPoints: savedState.accumulatedPoints ?? savedState.points ?? 0,
-  tier: savedState.tier,
-  isStaked: !!savedState.isStaked,
-  stakeAmount: savedState.stakeAmount || 0,
-  stakeMultiplier: savedState.stakeMultiplier || 1,
-  stakeUnlockTime: savedState.stakeUnlockTime || 0,
-  miningActive: !!savedState.miningActive,
-  lastActivation: savedState.lastActivation || 0,
-  tasks: savedState.tasks || {},
-  taskCooldowns: savedState.taskCooldowns || {},
-  syncPoints: () => {}, // placeholder, init below
+  points: initialState.points,
+  accumulatedPoints: initialState.accumulatedPoints,
+  tier: initialState.tier,
+  isStaked: initialState.isStaked,
+  stakeAmount: initialState.stakeAmount,
+  stakeMultiplier: initialState.stakeMultiplier,
+  stakeUnlockTime: initialState.stakeUnlockTime,
+  miningActive: initialState.miningActive,
+  lastActivation: initialState.lastActivation,
+  tasks: initialState.tasks,
+  taskCooldowns: initialState.taskCooldowns,
+  syncPoints: () => {}, 
   startMining: () => {},
   completeTask: () => {},
   completeRefreshTask: () => {},
@@ -109,28 +129,36 @@ const state: AppState = {
 const listeners = new Set<Listener>();
 
 const persist = () => {
-  localStorage.setItem('minerState', JSON.stringify({
-    points: state.points,
-    accumulatedPoints: state.accumulatedPoints,
-    tier: state.tier,
-    isStaked: state.isStaked,
-    stakeAmount: state.stakeAmount,
-    stakeMultiplier: state.stakeMultiplier,
-    stakeUnlockTime: state.stakeUnlockTime,
-    miningActive: state.miningActive,
-    lastActivation: state.lastActivation,
-    tasks: state.tasks,
-    taskCooldowns: state.taskCooldowns,
+  // Persist global state
+  localStorage.setItem('minerGlobalState', JSON.stringify({
     activeAddress: state.activeAddress,
     walletSource: state.walletSource,
     custodyAddress: state.custodyAddress,
     baseEmbeddedAddress: state.baseEmbeddedAddress,
-    xUsername: state.xUsername,
-    farcasterDisplayName: state.farcasterDisplayName,
-    farcasterPfpUrl: state.farcasterPfpUrl,
-    farcasterBio: state.farcasterBio,
-    farcasterWallets: state.farcasterWallets,
   }));
+
+  // Persist user specific state
+  if (state.activeAddress) {
+    const key = `minerState_${state.activeAddress.toLowerCase()}`;
+    localStorage.setItem(key, JSON.stringify({
+      points: state.points,
+      accumulatedPoints: state.accumulatedPoints,
+      tier: state.tier,
+      isStaked: state.isStaked,
+      stakeAmount: state.stakeAmount,
+      stakeMultiplier: state.stakeMultiplier,
+      stakeUnlockTime: state.stakeUnlockTime,
+      miningActive: state.miningActive,
+      lastActivation: state.lastActivation,
+      tasks: state.tasks,
+      taskCooldowns: state.taskCooldowns,
+      xUsername: state.xUsername,
+      farcasterDisplayName: state.farcasterDisplayName,
+      farcasterPfpUrl: state.farcasterPfpUrl,
+      farcasterBio: state.farcasterBio,
+      farcasterWallets: state.farcasterWallets,
+    }));
+  }
 };
 
 const getTierMultiplier = (tier: number) => {
@@ -257,7 +285,21 @@ state.setStaked = setStaked;
 export const appStore = {
   getState: () => state,
   setState: (newState: Partial<AppState>) => {
-    Object.assign(state, newState);
+    // Check if address is changing
+    if (newState.activeAddress !== undefined && newState.activeAddress !== state.activeAddress) {
+      // 1. Persist current state to the OLD address
+      persist();
+
+      // 2. Load state for the NEW address
+      const loadedState = loadStateForAddress(newState.activeAddress);
+
+      // 3. Update state: apply new address/globals first, then overwrite with loaded user data
+      Object.assign(state, newState);
+      Object.assign(state, loadedState);
+    } else {
+      Object.assign(state, newState);
+    }
+    
     persist();
     listeners.forEach((l) => l());
   },

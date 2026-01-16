@@ -178,12 +178,16 @@ const Profile: React.FC = () => {
     }
 
     try {
-      // Force permission request to allow account switching
+      try {
+        await (eth as any).request({
+          method: 'wallet_revokePermissions',
+          params: [{ eth_accounts: {} }],
+        });
+      } catch (e) {}
       await (eth as any).request({
         method: 'wallet_requestPermissions',
         params: [{ eth_accounts: {} }],
       });
-      
       const accounts = await (eth as any).request({ method: 'eth_requestAccounts' });
       const selected = accounts[0] as string | undefined;
       if (!selected) return;
@@ -192,8 +196,6 @@ const Profile: React.FC = () => {
         activeAddress: selected,
         walletSource: 'metamask',
       });
-      // Do not force switch to Sepolia. Let user stay on Mainnet if they want.
-      // await switchToBaseSepolia(); 
     } catch (err) {
       console.error(err);
     }

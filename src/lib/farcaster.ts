@@ -69,6 +69,16 @@ export const requestFarcasterAddresses = async (): Promise<string[]> => {
   const provider = await getEthereumProvider();
   if (!provider || !(provider as any).request) return [];
   try {
+    try {
+      await (provider as any).request({
+        method: 'wallet_revokePermissions',
+        params: [{ eth_accounts: {} }],
+      });
+    } catch (e) {}
+    await (provider as any).request({
+      method: 'wallet_requestPermissions',
+      params: [{ eth_accounts: {} }],
+    });
     const accounts = await (provider as any).request({ method: 'eth_requestAccounts' });
     if (!accounts) return [];
     return Array.isArray(accounts) ? accounts : [];
