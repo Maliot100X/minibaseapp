@@ -126,29 +126,7 @@ const Profile: React.FC = () => {
 
   const handleConnectFarcasterWallet = async () => {
     try {
-      const result = await (farcasterSdk as any).wallet.requestAddresses();
-      let addresses: string[] = [];
-      if (Array.isArray(result)) {
-        addresses = result
-          .map((v: any) =>
-            typeof v === 'string'
-              ? v
-              : v && typeof v === 'object'
-              ? v.address || v.value || null
-              : null
-          )
-          .filter((v: string | null): v is string => !!v);
-      } else if (result && Array.isArray((result as any).addresses)) {
-        addresses = (result as any).addresses
-          .map((v: any) =>
-            typeof v === 'string'
-              ? v
-              : v && typeof v === 'object'
-              ? v.address || v.value || null
-              : null
-          )
-          .filter((v: string | null): v is string => !!v);
-      }
+      const addresses = await requestFarcasterAddresses();
       if (!addresses.length) {
         alert('No Farcaster wallet address returned.');
         return;
