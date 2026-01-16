@@ -17,6 +17,7 @@ const Profile: React.FC = () => {
     isBaseMainnet,
     switchToBaseMainnet,
   } = useWallet();
+  const isMiniApp = !!context;
   const activeAddress = useAppStore((s) => s.activeAddress);
   const walletSource = useAppStore((s) => s.walletSource);
   const points = useAppStore((s) => s.points);
@@ -24,7 +25,7 @@ const Profile: React.FC = () => {
   const isStaked = useAppStore((s) => s.isStaked);
   const xUsername = useAppStore((s) => s.xUsername);
   
-  const effectiveAddress = activeAddress || activeWalletAddress || userAddress;
+  const effectiveAddress = activeAddress || activeWalletAddress;
   const { balance } = useTokenBalance(effectiveAddress);
   const [mmAddress, setMmAddress] = useState<string | null>(null);
   const [totalSwapped, setTotalSwapped] = useState<string>('0');
@@ -168,11 +169,11 @@ const Profile: React.FC = () => {
   };
 
   const handleEnsureBaseSepolia = async () => {
-    await switchToBaseSepolia();
-  };
-
-  const handleEnsureBaseMainnet = async () => {
-    await switchToBaseMainnet();
+    if (isBaseSepolia) {
+      await switchToBaseMainnet();
+    } else {
+      await switchToBaseSepolia();
+    }
   };
 
   const connectMetaMask = async () => {
@@ -305,18 +306,16 @@ const Profile: React.FC = () => {
             Wallet Sources
           </div>
           <div className="flex flex-col space-y-2">
-            {context && (
-              <button
-                type="button"
-                onClick={handleConnectFarcasterWallet}
-                className="w-full text-left px-3 py-2 rounded-lg border border-purple-600 bg-black/40 text-[12px] flex items-center justify-between"
-              >
-                <span>Connect Farcaster Wallet</span>
-                {walletSource === 'farcaster' && effectiveAddress && (
-                  <span className="text-green-400 text-[10px] font-mono">CONNECTED</span>
-                )}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleConnectFarcasterWallet}
+              className="w-full text-left px-3 py-2 rounded-lg border border-purple-600 bg-black/40 text-[12px] flex items-center justify-between"
+            >
+              <span>Connect Farcaster Wallet</span>
+              {walletSource === 'farcaster' && effectiveAddress && (
+                <span className="text-green-400 text-[10px] font-mono">CONNECTED</span>
+              )}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -333,7 +332,7 @@ const Profile: React.FC = () => {
                 <span className="text-green-400 text-[10px] font-mono">ACTIVE</span>
               )}
             </button>
-            {!context && (
+            {!isMiniApp && (
               <button
                 type="button"
                 onClick={handleConnectBaseWallet}
@@ -350,27 +349,13 @@ const Profile: React.FC = () => {
               onClick={handleEnsureBaseSepolia}
               className="w-full text-left px-3 py-2 rounded-lg border border-gray-700 bg-black/40 text-[12px] flex items-center justify-between"
             >
-              <span>Ensure Base Sepolia Network</span>
+              <span>Base Network</span>
               <span
                 className={`text-[10px] font-mono ${
-                  isBaseSepolia ? 'text-green-400' : 'text-yellow-400'
+                  isBaseSepolia || isBaseMainnet ? 'text-green-400' : 'text-yellow-400'
                 }`}
               >
-                {isBaseSepolia ? 'OK' : 'SWITCH'}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={handleEnsureBaseMainnet}
-              className="w-full text-left px-3 py-2 rounded-lg border border-gray-700 bg-black/40 text-[12px] flex items-center justify-between"
-            >
-              <span>Ensure Base Mainnet Network</span>
-              <span
-                className={`text-[10px] font-mono ${
-                  isBaseMainnet ? 'text-green-400' : 'text-yellow-400'
-                }`}
-              >
-                {isBaseMainnet ? 'OK' : 'SWITCH'}
+                {isBaseSepolia ? 'Sepolia' : isBaseMainnet ? 'Mainnet' : 'SWITCH'}
               </span>
             </button>
             <button
@@ -435,7 +420,7 @@ const Profile: React.FC = () => {
           </div>
         )}
 
-        {!context && (
+        {!isMiniApp && (
           <div className="bg-gray-900 p-4 rounded-xl border border-gray-800">
             <div className="flex justify-between items-center">
               <span className="font-bold flex items-center gap-2">

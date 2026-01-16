@@ -87,10 +87,6 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           farcasterBio: bio,
           farcasterWallets: allWallets,
           custodyAddress: fallback,
-          // Do NOT automatically set activeAddress to custodyAddress.
-          // The user must connect a real wallet for signing.
-          // activeAddress: fallback || null, 
-          // walletSource: fallback ? 'farcaster' : appStore.getState().walletSource,
         });
       } else {
         appStore.setState({
