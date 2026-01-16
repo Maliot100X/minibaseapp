@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect } from 'react';
-import { farcasterSdk, type FrameContext } from '../lib/farcaster';
+import { farcasterSdk, type FrameContext, requestFarcasterAddresses } from '../lib/farcaster';
 import { appStore, useAppStore } from '../state/appStore';
 
 interface FarcasterContextType {
