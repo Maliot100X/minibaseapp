@@ -7,6 +7,10 @@ interface HookFarcasterState {
   username: string | null;
   fid: number | null;
   isLoaded: boolean;
+   displayName: string | null;
+   pfpUrl: string | null;
+   bio: string | null;
+   wallets: string[];
 }
 
 export const useFarcaster = (): HookFarcasterState => {

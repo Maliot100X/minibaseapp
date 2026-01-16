@@ -8,7 +8,9 @@ interface WalletState {
   hasBaseEnv: boolean;
   chainId: number | null;
   isBaseSepolia: boolean;
+  isBaseMainnet: boolean;
   switchToBaseSepolia: () => Promise<void>;
+  switchToBaseMainnet: () => Promise<void>;
   connectBaseWallet: () => Promise<void>;
 }
 
@@ -20,6 +22,8 @@ export const useWallet = (): WalletState => {
 
   const BASE_SEPOLIA_DECIMAL = 84532;
   const BASE_SEPOLIA_HEX = '0x14A34';
+  const BASE_MAINNET_DECIMAL = 8453;
+  const BASE_MAINNET_HEX = '0x2105';
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -123,6 +127,47 @@ export const useWallet = (): WalletState => {
     }
   };
 
+  const switchToBaseMainnet = async () => {
+    if (typeof window === 'undefined') return;
+    const anyWindow = window as any;
+    const eth = anyWindow.ethereum;
+    if (!eth || !eth.request) return;
+
+    try {
+      await eth.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: BASE_MAINNET_HEX }],
+      });
+    } catch (error: any) {
+      if (error && error.code === 4902) {
+        const rpcUrl =
+          (import.meta as any).env.VITE_BASE_MAINNET_RPC ||
+          'https://mainnet.base.org';
+
+        try {
+          await eth.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: BASE_MAINNET_HEX,
+                chainName: 'Base',
+                nativeCurrency: {
+                  name: 'Ether',
+                  symbol: 'ETH',
+                  decimals: 18,
+                },
+                rpcUrls: [rpcUrl],
+                blockExplorerUrls: ['https://base.blockscout.com'],
+              },
+            ],
+          });
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
+  };
+
   return {
     address: activeAddress,
     isReadOnly: !activeAddress,
@@ -130,7 +175,9 @@ export const useWallet = (): WalletState => {
     hasBaseEnv,
     chainId,
     isBaseSepolia: chainId === BASE_SEPOLIA_DECIMAL,
+    isBaseMainnet: chainId === BASE_MAINNET_DECIMAL,
     switchToBaseSepolia,
+    switchToBaseMainnet,
     connectBaseWallet,
   };
 };

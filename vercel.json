@@ -4,7 +4,11 @@
       "source": "/.well-known/farcaster.json",
       "destination": "https://api.farcaster.xyz/miniapps/hosted-manifest/019bc50d-3662-c992-dce7-4d6ee680392c",
       "permanent": false
+    },
+    {
+      "source": "/share",
+      "destination": "https://warpcast.com/~/compose?text=Check+out+SignalBase+Mini+App+on+Base!",
+      "permanent": false
     }
   ]
 }
-

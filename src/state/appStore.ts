@@ -8,6 +8,10 @@ export interface AppState {
   fid: number | null;
   username: string | null;
   xUsername: string | null;
+  farcasterDisplayName: string | null;
+  farcasterPfpUrl: string | null;
+  farcasterBio: string | null;
+  farcasterWallets: string[];
   custodyAddress: string | null;
   baseEmbeddedAddress: string | null;
   activeAddress: string | null;
@@ -23,9 +27,11 @@ export interface AppState {
   miningActive: boolean;
   lastActivation: number;
   tasks: { [key: string]: boolean };
+  taskCooldowns: { [key: string]: number };
   syncPoints: () => void;
   startMining: () => void;
   completeTask: (taskId: string, reward: number) => void;
+  completeRefreshTask: (taskId: string, reward: number, cooldownMs: number) => void;
   upgradeTier: (newTier: number) => void;
   deductPoints: (amount: number) => void;
   setStaked: (staked: boolean, amount?: number, multiplier?: number, unlockTime?: number) => void;
@@ -51,11 +57,16 @@ const loadState = () => {
     miningActive: false,
     lastActivation: 0,
     tasks: {},
+    taskCooldowns: {},
     activeAddress: null,
     walletSource: 'none',
     custodyAddress: null,
     baseEmbeddedAddress: null,
     xUsername: null,
+    farcasterDisplayName: null,
+    farcasterPfpUrl: null,
+    farcasterBio: null,
+    farcasterWallets: [],
   };
 };
 
@@ -66,6 +77,10 @@ const state: AppState = {
   fid: null,
   username: null,
   xUsername: savedState.xUsername ?? null,
+  farcasterDisplayName: savedState.farcasterDisplayName ?? null,
+  farcasterPfpUrl: savedState.farcasterPfpUrl ?? null,
+  farcasterBio: savedState.farcasterBio ?? null,
+  farcasterWallets: savedState.farcasterWallets ?? [],
   custodyAddress: savedState.custodyAddress ?? null,
   baseEmbeddedAddress: savedState.baseEmbeddedAddress ?? null,
   activeAddress: savedState.activeAddress ?? null,
@@ -81,9 +96,11 @@ const state: AppState = {
   miningActive: !!savedState.miningActive,
   lastActivation: savedState.lastActivation || 0,
   tasks: savedState.tasks || {},
+  taskCooldowns: savedState.taskCooldowns || {},
   syncPoints: () => {}, // placeholder, init below
   startMining: () => {},
   completeTask: () => {},
+  completeRefreshTask: () => {},
   upgradeTier: () => {},
   deductPoints: () => {},
   setStaked: () => {},
@@ -103,11 +120,16 @@ const persist = () => {
     miningActive: state.miningActive,
     lastActivation: state.lastActivation,
     tasks: state.tasks,
+    taskCooldowns: state.taskCooldowns,
     activeAddress: state.activeAddress,
     walletSource: state.walletSource,
     custodyAddress: state.custodyAddress,
     baseEmbeddedAddress: state.baseEmbeddedAddress,
     xUsername: state.xUsername,
+    farcasterDisplayName: state.farcasterDisplayName,
+    farcasterPfpUrl: state.farcasterPfpUrl,
+    farcasterBio: state.farcasterBio,
+    farcasterWallets: state.farcasterWallets,
   }));
 };
 
@@ -179,6 +201,18 @@ const completeTask = (taskId: string, reward: number) => {
   listeners.forEach((l) => l());
 };
 
+const completeRefreshTask = (taskId: string, reward: number, cooldownMs: number) => {
+  const now = Date.now();
+  const last = state.taskCooldowns[taskId] || 0;
+  if (now - last < cooldownMs) {
+    return;
+  }
+  state.taskCooldowns[taskId] = now;
+  state.points += reward;
+  persist();
+  listeners.forEach((l) => l());
+};
+
 const upgradeTier = (newTier: number) => {
   syncPoints(); // settle pending points first
   state.tier = newTier;
@@ -215,6 +249,7 @@ const setStaked = (staked: boolean, amount?: number, multiplier?: number, unlock
 state.syncPoints = syncPoints;
 state.startMining = startMining;
 state.completeTask = completeTask;
+state.completeRefreshTask = completeRefreshTask;
 state.upgradeTier = upgradeTier;
 state.deductPoints = deductPoints;
 state.setStaked = setStaked;

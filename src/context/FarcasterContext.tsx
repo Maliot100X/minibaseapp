@@ -7,6 +7,10 @@ interface FarcasterContextType {
   userAddress: string | null;
   username: string | null;
   fid: number | null;
+  displayName: string | null;
+  pfpUrl: string | null;
+  bio: string | null;
+  wallets: string[];
   isLoaded: boolean;
   sync: () => Promise<void>;
 }
@@ -16,6 +20,10 @@ const FarcasterContext = createContext<FarcasterContextType>({
   userAddress: null,
   username: null,
   fid: null,
+  displayName: null,
+  pfpUrl: null,
+  bio: null,
+  wallets: [],
   isLoaded: false,
   sync: async () => {},
 });
@@ -29,6 +37,10 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const activeAddress = useAppStore((s) => s.activeAddress);
   const custodyAddress = useAppStore((s) => s.custodyAddress);
   const isLoaded = useAppStore((s) => s.contextReady);
+  const displayName = useAppStore((s) => s.farcasterDisplayName);
+  const pfpUrl = useAppStore((s) => s.farcasterPfpUrl);
+  const bio = useAppStore((s) => s.farcasterBio);
+  const wallets = useAppStore((s) => s.farcasterWallets);
 
   const sync = async () => {
     try {
@@ -36,6 +48,30 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (ctx && ctx.user) {
         const userAny = ctx.user as any;
         const custodyAddress = userAny.custody_address || userAny.custodyAddress;
+        const verifiedRaw = userAny.verified_addresses || userAny.verifiedAddresses || [];
+        const verified = Array.isArray(verifiedRaw)
+          ? verifiedRaw
+              .map((v: any) =>
+                typeof v === 'string'
+                  ? v
+                  : v?.address || v?.value || null
+              )
+              .filter((v: string | null): v is string => !!v)
+          : [];
+        const allWallets = [
+          custodyAddress,
+          ...verified,
+        ].filter((v, i, arr) => v && arr.indexOf(v) === i) as string[];
+        const displayName =
+          userAny.display_name ||
+          userAny.displayName ||
+          ctx.user.username ||
+          null;
+        const pfpUrl = userAny.pfp_url || userAny.pfpUrl || null;
+        const bio =
+          userAny.bio ||
+          (userAny.profile && userAny.profile.bio) ||
+          null;
         const fallback =
           custodyAddress ||
           (userAny.verified_addresses && userAny.verified_addresses.length > 0
@@ -46,6 +82,10 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           farcasterContext: ctx as FrameContext,
           fid: ctx.user.fid,
           username: ctx.user.username ?? null,
+          farcasterDisplayName: displayName,
+          farcasterPfpUrl: pfpUrl,
+          farcasterBio: bio,
+          farcasterWallets: allWallets,
           custodyAddress: fallback,
           activeAddress: fallback || null,
           walletSource: fallback ? 'farcaster' : appStore.getState().walletSource,
@@ -56,6 +96,10 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           fid: null,
           username: null,
           custodyAddress: null,
+          farcasterDisplayName: null,
+          farcasterPfpUrl: null,
+          farcasterBio: null,
+          farcasterWallets: [],
         });
       }
     } catch (error) {
@@ -85,6 +129,10 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         userAddress: custodyAddress || activeAddress,
         username,
         fid,
+        displayName,
+        pfpUrl,
+        bio,
+        wallets,
         isLoaded,
         sync,
       }}

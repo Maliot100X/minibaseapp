@@ -6,9 +6,17 @@ import { useWallet } from '../hooks/useWallet';
 import { useTokenBalance } from '../hooks/useTokenBalance';
 
 const Profile: React.FC = () => {
-  const { username, fid, userAddress, context, sync } = useFarcaster();
-  const { address: activeWalletAddress, connectBaseWallet, switchToBaseSepolia, isBaseSepolia, hasBaseEnv } =
-    useWallet();
+  const { username, fid, userAddress, context, sync, displayName } = useFarcaster();
+  const {
+    address: activeWalletAddress,
+    connectBaseWallet,
+    switchToBaseSepolia,
+    isBaseSepolia,
+    hasBaseEnv,
+    chainId,
+    isBaseMainnet,
+    switchToBaseMainnet,
+  } = useWallet();
   const activeAddress = useAppStore((s) => s.activeAddress);
   const walletSource = useAppStore((s) => s.walletSource);
   const points = useAppStore((s) => s.points);
@@ -130,6 +138,10 @@ const Profile: React.FC = () => {
     await switchToBaseSepolia();
   };
 
+  const handleEnsureBaseMainnet = async () => {
+    await switchToBaseMainnet();
+  };
+
   const connectMetaMask = async () => {
     if (window.ethereum) {
       try {
@@ -176,7 +188,7 @@ const Profile: React.FC = () => {
 
       <div className="text-center">
         <h1 className="text-[20px] font-semibold flex items-center justify-center gap-2">
-          @{username || 'User'}
+          {displayName || `@${username || 'User'}`}
           {fid && <span className="text-xs font-mono font-normal text-gray-500">#{fid}</span>}
         </h1>
         <div className="flex items-center justify-center gap-2 mt-2 text-[12px] text-gray-400">
@@ -293,6 +305,20 @@ const Profile: React.FC = () => {
                 {isBaseSepolia ? 'OK' : 'SWITCH'}
               </span>
             </button>
+            <button
+              type="button"
+              onClick={handleEnsureBaseMainnet}
+              className="w-full text-left px-3 py-2 rounded-lg border border-gray-700 bg-black/40 text-[12px] flex items-center justify-between"
+            >
+              <span>Ensure Base Mainnet Network</span>
+              <span
+                className={`text-[10px] font-mono ${
+                  isBaseMainnet ? 'text-green-400' : 'text-yellow-400'
+                }`}
+              >
+                {isBaseMainnet ? 'OK' : 'SWITCH'}
+              </span>
+            </button>
           </div>
         </div>
 
@@ -370,7 +396,13 @@ const Profile: React.FC = () => {
         <a
           href={
             effectiveAddress
-              ? `https://base-sepolia.blockscout.com/address/${effectiveAddress}`
+              ? `${
+                  chainId === 8453
+                    ? 'https://base.blockscout.com/address'
+                    : 'https://base-sepolia.blockscout.com/address'
+                }/${effectiveAddress}`
+              : chainId === 8453
+              ? 'https://base.blockscout.com/'
               : 'https://base-sepolia.blockscout.com/'
           }
           target="_blank"

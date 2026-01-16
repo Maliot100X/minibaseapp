@@ -11,7 +11,9 @@ const Tasks: React.FC = () => {
   const { address } = useWallet();
   const { context, fid } = useFarcaster();
   const tasks = useAppStore((s) => s.tasks);
+  const taskCooldowns = useAppStore((s) => s.taskCooldowns);
   const completeTask = useAppStore((s) => s.completeTask);
+  const completeRefreshTask = useAppStore((s) => s.completeRefreshTask);
    const xUsername = useAppStore((s) => s.xUsername);
 
   const [loading, setLoading] = useState<string | null>(null);
@@ -32,6 +34,32 @@ const Tasks: React.FC = () => {
         }
       }
       completeTask(id, reward);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const REFRESH_COOLDOWN_MS = 3 * 60 * 60 * 1000;
+
+  const handleRefreshTask = async (id: string, reward: number, action?: () => Promise<boolean> | void) => {
+    const last = taskCooldowns[id] || 0;
+    const now = Date.now();
+    if (now - last < REFRESH_COOLDOWN_MS) {
+      alert('This task will refresh soon. Try again later.');
+      return;
+    }
+
+    setLoading(id);
+    try {
+      if (action) {
+        const result = await action();
+        if (result === false) {
+          return;
+        }
+      }
+      completeRefreshTask(id, reward, REFRESH_COOLDOWN_MS);
     } catch (e) {
       console.error(e);
     } finally {
@@ -139,6 +167,12 @@ const Tasks: React.FC = () => {
     return true;
   };
 
+  const isRefreshTaskAvailable = (id: string) => {
+    const last = taskCooldowns[id] || 0;
+    const now = Date.now();
+    return now - last >= REFRESH_COOLDOWN_MS;
+  };
+
   return (
     <div className="flex flex-col items-center px-4 pt-safe pb-24 space-y-8">
       <div className="text-center space-y-2">
@@ -205,18 +239,18 @@ const Tasks: React.FC = () => {
 
           <TaskItem
             id="x_login"
-            title="Login with X"
-            reward={500}
-            isCompleted={tasks['x_login']}
+            title="Login with X (3h refresh)"
+            reward={250}
+            isCompleted={false}
             isLoading={loading === 'x_login'}
             icon={<Twitter size={16} />}
-            disabled={!xUsername || !xUsername.trim()}
+            disabled={!xUsername || !xUsername.trim() || !isRefreshTaskAvailable('x_login')}
             helper={
               !xUsername || !xUsername.trim()
                 ? 'Add your X username in the Profile tab'
-                : 'Uses your saved X username, no OAuth required'
+                : 'Refreshes every 3 hours'
             }
-            onClick={() => handleTask('x_login', 500, verifyXSession)}
+            onClick={() => handleRefreshTask('x_login', 250, verifyXSession)}
           />
 
           {tasks['x_login'] && (
@@ -280,12 +314,13 @@ const Tasks: React.FC = () => {
 
           <TaskItem
             id="base_tx"
-            title="Execute 1 transaction on Base"
-            reward={500}
-            isCompleted={tasks['base_tx']}
+            title="Execute 1 transaction on Base (3h refresh)"
+            reward={250}
+            isCompleted={false}
             isLoading={loading === 'base_tx'}
+            disabled={!isRefreshTaskAvailable('base_tx')}
             onClick={() =>
-              handleTask('base_tx', 500, async () => {
+              handleRefreshTask('base_tx', 250, async () => {
                 const hasTx = await verifyBaseTx();
                 if (!hasTx) {
                   alert('No transactions found for this address on Base Sepolia yet.');
@@ -298,12 +333,13 @@ const Tasks: React.FC = () => {
 
           <TaskItem
             id="base_swap"
-            title="Complete 1 swap on Base"
-            reward={500}
-            isCompleted={tasks['base_swap']}
+            title="Complete 1 swap on Base (3h refresh)"
+            reward={250}
+            isCompleted={false}
             isLoading={loading === 'base_swap'}
+            disabled={!isRefreshTaskAvailable('base_swap')}
             onClick={() =>
-              handleTask('base_swap', 500, async () => {
+              handleRefreshTask('base_swap', 250, async () => {
                 const hasTx = await verifyBaseTx();
                 if (!hasTx) {
                   alert('Please complete a swap first.');
