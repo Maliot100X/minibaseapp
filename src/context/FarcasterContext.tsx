@@ -45,6 +45,15 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const sync = async () => {
     try {
       const ctx = await farcasterSdk.context;
+      
+      // Try to get real wallet addresses
+      let walletAddresses: string[] = [];
+      try {
+        walletAddresses = await requestFarcasterAddresses();
+      } catch (err) {
+        console.warn('Failed to request addresses during sync', err);
+      }
+
       if (ctx && ctx.user) {
         const userAny = ctx.user as any;
         const custodyAddress = userAny.custody_address || userAny.custodyAddress;
@@ -58,10 +67,13 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               )
               .filter((v: string | null): v is string => !!v)
           : [];
+          
         const allWallets = [
+          ...walletAddresses,
           custodyAddress,
           ...verified,
         ].filter((v, i, arr) => v && arr.indexOf(v) === i) as string[];
+
         const displayName =
           userAny.display_name ||
           userAny.displayName ||
@@ -72,7 +84,10 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           userAny.bio ||
           (userAny.profile && userAny.profile.bio) ||
           null;
+        
+        // Prefer the requested address, then custody, then verified
         const fallback =
+          (walletAddresses.length > 0 ? walletAddresses[0] : null) ||
           custodyAddress ||
           (userAny.verified_addresses && userAny.verified_addresses.length > 0
             ? userAny.verified_addresses[0]
@@ -87,6 +102,11 @@ export const FarcasterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           farcasterBio: bio,
           farcasterWallets: allWallets,
           custodyAddress: fallback,
+          // If we got a real wallet address, set it as active
+          ...(walletAddresses.length > 0 ? { 
+            activeAddress: walletAddresses[0],
+            walletSource: 'farcaster' 
+          } : {})
         });
       } else {
         appStore.setState({

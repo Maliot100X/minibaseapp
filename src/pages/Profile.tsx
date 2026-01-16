@@ -126,11 +126,21 @@ const Profile: React.FC = () => {
 
   const handleConnectFarcasterWallet = async () => {
     try {
+      // 1. Force the Farcaster SDK to request addresses
+      // This is the ONLY way to trigger the frame wallet popup
       const addresses = await requestFarcasterAddresses();
-      if (!addresses.length) {
-        alert('No Farcaster wallet address returned.');
+      
+      if (!addresses || addresses.length === 0) {
+        // If we are in a Frame, this means the user declined or the popup failed.
+        // If we are NOT in a Frame, this falls back to window.ethereum.
+        if (isMiniApp) {
+             alert('Farcaster wallet request failed or was declined. Please try again.');
+        } else {
+             alert('No wallet addresses found.');
+        }
         return;
       }
+      
       const addr = addresses[0];
       appStore.setState({
         activeAddress: addr,
@@ -182,7 +192,8 @@ const Profile: React.FC = () => {
         activeAddress: selected,
         walletSource: 'metamask',
       });
-      await switchToBaseSepolia();
+      // Do not force switch to Sepolia. Let user stay on Mainnet if they want.
+      // await switchToBaseSepolia(); 
     } catch (err) {
       console.error(err);
     }

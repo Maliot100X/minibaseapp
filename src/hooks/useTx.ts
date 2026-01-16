@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { createSignalWalletClient, publicClient } from '../lib/wagmi';
+import { createSignalWalletClient, publicClient, publicMainnetClient } from '../lib/wagmi';
+import { useWallet } from './useWallet';
 
 interface TxState {
   hash: `0x${string}` | null;
@@ -10,6 +11,7 @@ interface TxState {
 type ExecuteFn = (walletClient: any, account: `0x${string}`) => Promise<`0x${string}`>;
 
 export const useTx = () => {
+  const { chainId } = useWallet();
   const [state, setState] = useState<TxState>({
     hash: null,
     loading: false,
@@ -20,7 +22,7 @@ export const useTx = () => {
     setState((s) => ({ ...s, loading: true, error: null, hash: null }));
 
     try {
-      const walletClient = createSignalWalletClient();
+      const walletClient = createSignalWalletClient(chainId || undefined);
       if (!walletClient) {
         throw new Error('Wallet not available');
       }
@@ -28,7 +30,9 @@ export const useTx = () => {
       const [account] = await walletClient.requestAddresses();
 
       const hash = await execute(walletClient, account);
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      
+      const client = chainId === 8453 ? publicMainnetClient : publicClient;
+      const receipt = await client.waitForTransactionReceipt({ hash });
 
       if (receipt.status !== 'success') {
         throw new Error('Transaction failed');
