@@ -4,7 +4,7 @@ import { useFarcaster } from '../context/FarcasterContext';
 import { appStore, useAppStore } from '../state/appStore';
 import { useWallet } from '../hooks/useWallet';
 import { useTokenBalance } from '../hooks/useTokenBalance';
-import { getEthereumProvider, farcasterSdk } from '../lib/farcaster';
+import { getEthereumProvider, requestFarcasterAddresses } from '../lib/farcaster';
 
 const Profile: React.FC = () => {
   const { username, fid, userAddress, context, sync, displayName } = useFarcaster();
