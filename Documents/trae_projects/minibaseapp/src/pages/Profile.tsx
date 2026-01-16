@@ -7,7 +7,12 @@ import { useTokenBalance } from '../hooks/useTokenBalance';
 
 const Profile: React.FC = () => {
   const { username, fid, userAddress, context, sync } = useFarcaster();
-  const { address: activeWalletAddress } = useWallet();
+  const {
+    address: activeWalletAddress,
+    connectBaseWallet,
+    switchToBaseSepolia,
+    isBaseSepolia,
+  } = useWallet();
   const activeAddress = useAppStore((s) => s.activeAddress);
   const walletSource = useAppStore((s) => s.walletSource);
   const points = useAppStore((s) => s.points);
@@ -19,6 +24,7 @@ const Profile: React.FC = () => {
   const { balance } = useTokenBalance(effectiveAddress);
   const [mmAddress, setMmAddress] = useState<string | null>(null);
   const [totalSwapped, setTotalSwapped] = useState<string>('0');
+  const [xConnected, setXConnected] = useState<boolean>(false);
 
   useEffect(() => {
     // We can track total swapped via events or local storage if not available onchain easily without indexing
@@ -85,6 +91,7 @@ const Profile: React.FC = () => {
     const savedUsername = localStorage.getItem('xUsername');
     if (savedUsername) {
       appStore.setState({ xUsername: savedUsername });
+      setXConnected(true);
     }
   }, []);
 
@@ -92,6 +99,33 @@ const Profile: React.FC = () => {
     const raw = event.target.value;
     appStore.setState({ xUsername: raw });
     localStorage.setItem('xUsername', raw);
+    if (!raw.trim()) {
+      setXConnected(false);
+    }
+  };
+
+  const handleConnectX = () => {
+    const current = appStore.getState().xUsername;
+    if (!current || !current.trim()) {
+      alert('Add your X username first.');
+      return;
+    }
+    setXConnected(true);
+  };
+
+  const handleConnectBaseWallet = async () => {
+    await connectBaseWallet();
+    const baseAddr = appStore.getState().baseEmbeddedAddress;
+    if (baseAddr) {
+      appStore.setState({
+        activeAddress: baseAddr,
+        walletSource: 'base',
+      });
+    }
+  };
+
+  const handleEnsureBaseSepolia = async () => {
+    await switchToBaseSepolia();
   };
 
   const connectMetaMask = async () => {
@@ -231,20 +265,27 @@ const Profile: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => {
-                const baseAddr = appStore.getState().baseEmbeddedAddress;
-                if (!baseAddr) return;
-                appStore.setState({
-                  activeAddress: baseAddr,
-                  walletSource: 'base',
-                });
-              }}
+              onClick={handleConnectBaseWallet}
               className="w-full text-left px-3 py-2 rounded-lg border border-gray-700 bg-black/40 text-[12px] flex items-center justify-between"
             >
-              <span>Use Base Wallet</span>
+              <span>Connect Base Wallet</span>
               {walletSource === 'base' && (
                 <span className="text-green-400 text-[10px] font-mono">ACTIVE</span>
               )}
+            </button>
+            <button
+              type="button"
+              onClick={handleEnsureBaseSepolia}
+              className="w-full text-left px-3 py-2 rounded-lg border border-gray-700 bg-black/40 text-[12px] flex items-center justify-between"
+            >
+              <span>Ensure Base Sepolia Network</span>
+              <span
+                className={`text-[10px] font-mono ${
+                  isBaseSepolia ? 'text-green-400' : 'text-yellow-400'
+                }`}
+              >
+                {isBaseSepolia ? 'OK' : 'SWITCH'}
+              </span>
             </button>
           </div>
         </div>
@@ -262,9 +303,25 @@ const Profile: React.FC = () => {
               placeholder="@username"
               className="px-3 py-2 rounded-lg bg-black/60 border border-gray-700 text-[12px] text-gray-100 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
-            <span className="text-[11px] text-gray-500">
-              Add your X handle here. Tasks use this instantly, no OAuth required.
-            </span>
+            <div className="flex items-center justify-between mt-1">
+              <button
+                type="button"
+                onClick={handleConnectX}
+                disabled={!xUsername || !xUsername.trim()}
+                className={`px-3 py-1 rounded-lg text-[11px] font-semibold border ${
+                  !xUsername || !xUsername.trim()
+                    ? 'bg-gray-800 border-gray-700 text-gray-500'
+                    : xConnected
+                    ? 'bg-green-600 border-green-500 text-black'
+                    : 'bg-blue-600 border-blue-500 text-white'
+                }`}
+              >
+                {xConnected ? 'Connected' : 'Connect X'}
+              </button>
+              <span className="text-[11px] text-gray-500">
+                Tasks read this handle instantly, no OAuth required.
+              </span>
+            </div>
           </label>
         </div>
 
