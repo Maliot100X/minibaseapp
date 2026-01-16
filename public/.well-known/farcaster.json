@@ -1,25 +1,36 @@
 {
+  "frame": {
+    "name": "SignalBase",
+    "version": "1",
+    "iconUrl": "https://minibaseapp.vercel.app/icon.png",
+    "homeUrl": "https://minibaseapp.vercel.app",
+    "imageUrl": "https://minibaseapp.vercel.app/image.png",
+    "buttonTitle": "MineSignal",
+    "splashImageUrl": "https://minibaseapp.vercel.app/splash.png",
+    "splashBackgroundColor": "#6200EA",
+    "webhookUrl": "https://minibaseapp.vercel.app/api/webhook",
+    "subtitle": "Connect and share instantly",
+    "description": "SignalBase is the next-generation Web3 social platform. Connect with friends, monitor active mining stats, manage your wallet, and explore real-time activity feeds—all in one sleek, secure interface.",
+    "primaryCategory": "finance",
+    "screenshotUrls": [
+      "https://minibaseapp.vercel.app/screenshots/home.png"
+    ],
+    "heroImageUrl": "https://minibaseapp.vercel.app/image.png",
+    "tags": [
+      "mining",
+      "web3",
+      "baseminiapp",
+      "farcasterminiapp"
+    ],
+    "tagline": "Mine, Connect  The Web3 Way",
+    "ogTitle": "Active Mining on Base",
+    "ogDescription": "Track your mining stats, manage your wallet, and connect with the SignalBase community in real-time.",
+    "ogImageUrl": "https://minibaseapp.vercel.app/og.png",
+    "castShareUrl": "https://warpcast.com/~/compose?text=Check+out+SignalBase+Mini+App+on+Base!"
+  },
   "accountAssociation": {
     "header": "eyJmaWQiOjE0MjgzODQsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhmNWJDOTczOThiM0E2MzI5YkUzMzlBZjA4Y2JCY2EyN2VhRUVkQjNCIn0",
     "payload": "eyJkb21haW4iOiJtaW5pYmFzZWFwcC52ZXJjZWwuYXBwIn0",
     "signature": "ptbDHvv4+BV5mzFMEEr5ksS3GtGbS0OKRl5OV/CAFjhnSE7SyV8YwAk8GDEY/qcot0+GC7rkSeVGrszFiwmlsRw="
-  },
-  "miniapp": {
-    "version": "1",
-    "name": "SignalBase",
-    "iconUrl": "https://minibaseapp.vercel.app/icon.png",
-    "homeUrl": "https://minibaseapp.vercel.app",
-    "imageUrl": "https://minibaseapp.vercel.app/og.png",
-    "buttonTitle": "Open Mini App",
-    "splashImageUrl": "https://minibaseapp.vercel.app/splash.png",
-    "splashBackgroundColor": "#6200EA",
-    "screenshotUrls": [
-      "https://minibaseapp.vercel.app/screenshots/home.png"
-    ],
-    "subtitle": "Signal Miner • Base Sepolia",
-    "tagline": "Active Mining on Base",
-    "description": "SignalBase lets you run 24h mining sessions and track emissions on Base.",
-    "primaryCategory": "finance",
-    "tags": ["base", "farcaster", "miniapp", "mining", "signals"]
   }
 }
