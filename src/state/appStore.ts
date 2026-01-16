@@ -40,17 +40,22 @@ const loadState = () => {
   } catch (error) {
     console.error(error);
   }
-  return { 
-    points: 0, 
+  return {
+    points: 0,
     accumulatedPoints: 0,
-    tier: 0, 
+    tier: 0,
     isStaked: false,
     stakeAmount: 0,
     stakeMultiplier: 1,
     stakeUnlockTime: 0,
     miningActive: false,
     lastActivation: 0,
-    tasks: {}
+    tasks: {},
+    activeAddress: null,
+    walletSource: 'none',
+    custodyAddress: null,
+    baseEmbeddedAddress: null,
+    xUsername: null,
   };
 };
 
@@ -60,11 +65,11 @@ const state: AppState = {
   farcasterContext: null,
   fid: null,
   username: null,
-  xUsername: null,
-  custodyAddress: null,
-  baseEmbeddedAddress: null,
-  activeAddress: null,
-  walletSource: 'none',
+  xUsername: savedState.xUsername ?? null,
+  custodyAddress: savedState.custodyAddress ?? null,
+  baseEmbeddedAddress: savedState.baseEmbeddedAddress ?? null,
+  activeAddress: savedState.activeAddress ?? null,
+  walletSource: savedState.walletSource ?? 'none',
   contextReady: false,
   points: savedState.points,
   accumulatedPoints: savedState.accumulatedPoints ?? savedState.points ?? 0,
@@ -97,7 +102,12 @@ const persist = () => {
     stakeUnlockTime: state.stakeUnlockTime,
     miningActive: state.miningActive,
     lastActivation: state.lastActivation,
-    tasks: state.tasks
+    tasks: state.tasks,
+    activeAddress: state.activeAddress,
+    walletSource: state.walletSource,
+    custodyAddress: state.custodyAddress,
+    baseEmbeddedAddress: state.baseEmbeddedAddress,
+    xUsername: state.xUsername,
   }));
 };
 
@@ -213,6 +223,7 @@ export const appStore = {
   getState: () => state,
   setState: (newState: Partial<AppState>) => {
     Object.assign(state, newState);
+    persist();
     listeners.forEach((l) => l());
   },
   subscribe: (listener: Listener) => {

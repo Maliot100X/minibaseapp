@@ -3,8 +3,7 @@ import type { Chain } from 'viem';
 import { baseSepoliaChain } from './chain';
 
 const rpcUrl =
-  (import.meta as any).env.VITE_BASE_SEPOLIA_RPC ||
-  'https://base-sepolia.g.alchemy.com/v2/wY-wCVXDnFCO_NWLr8aC5';
+  (import.meta as any).env.VITE_BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
 
 export const publicClient = createPublicClient({
   chain: baseSepoliaChain as Chain,

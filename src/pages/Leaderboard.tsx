@@ -92,9 +92,8 @@ const Leaderboard: React.FC = () => {
       setStakerEntries(stakeSorted.slice(0, 50));
       setError(null);
     } catch (err: any) {
-      console.error("Failed to fetch leaderboard", err);
-      setError(err.message || 'Failed to load leaderboard. Try a shorter timeframe.');
-      // Don't auto-retry if it's likely a timeout
+      console.error('Failed to fetch leaderboard', err);
+      setError('Failed to load leaderboard data from Base Sepolia. Try again shortly.');
     } finally {
       setLoading(false);
     }
