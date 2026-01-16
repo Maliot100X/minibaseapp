@@ -143,7 +143,7 @@ export const useWallet = (): WalletState => {
                   decimals: 18,
                 },
                 rpcUrls: [rpcUrl],
-                blockExplorerUrls: ['https://base.blockscout.com'],
+                blockExplorerUrls: ['https://basescan.org'],
               },
             ],
           });

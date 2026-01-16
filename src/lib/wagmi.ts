@@ -9,13 +9,13 @@ const mainnetRpcUrl =
   (import.meta as any).env.VITE_BASE_MAINNET_RPC || 'https://mainnet.base.org';
 
 export const publicClient = createPublicClient({
-  chain: baseSepoliaChain as Chain,
-  transport: http(sepoliaRpcUrl),
-});
-
-export const publicMainnetClient = createPublicClient({
   chain: baseMainnetChain as Chain,
   transport: http(mainnetRpcUrl),
+});
+
+export const publicSepoliaClient = createPublicClient({
+  chain: baseSepoliaChain as Chain,
+  transport: http(sepoliaRpcUrl),
 });
 
 export const createSignalWalletClient = (chainId?: number) => {
@@ -23,7 +23,7 @@ export const createSignalWalletClient = (chainId?: number) => {
   const anyWindow = window as any;
   if (!anyWindow.ethereum) return null;
   
-  const targetChain = chainId === 8453 ? baseMainnetChain : baseSepoliaChain;
+  const targetChain = chainId === 84532 ? baseSepoliaChain : baseMainnetChain;
 
   return createWalletClient({
     chain: targetChain as Chain,

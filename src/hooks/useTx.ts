@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createSignalWalletClient, publicClient, publicMainnetClient } from '../lib/wagmi';
+import { createSignalWalletClient, publicClient, publicSepoliaClient } from '../lib/wagmi';
 import { useWallet } from './useWallet';
 
 interface TxState {
@@ -31,7 +31,8 @@ export const useTx = () => {
 
       const hash = await execute(walletClient, account);
       
-      const client = chainId === 8453 ? publicMainnetClient : publicClient;
+      // Use Sepolia client if explicitly on Sepolia, otherwise default to Mainnet
+      const client = chainId === 84532 ? publicSepoliaClient : publicClient;
       const receipt = await client.waitForTransactionReceipt({ hash });
 
       if (receipt.status !== 'success') {

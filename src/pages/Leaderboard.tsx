@@ -101,7 +101,9 @@ const Leaderboard: React.FC = () => {
 
   useEffect(() => {
     fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 60000);
+
+    // Refresh every 30 seconds for "live" feel
+    const interval = setInterval(fetchLeaderboard, 30000);
     return () => clearInterval(interval);
   }, [timeframe, retryCount]);
 
