@@ -22,7 +22,7 @@ function formatAddress(addr: string) {
 }
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<'new' | 'graduated'>('new');
+  const [activeTab, setActiveTab] = useState<'new' | 'graduated' | 'boosted'>('new');
 
   const { data: coins, isLoading, error } = useQuery<CoinLog[]>({
     queryKey: ['recent-coins'],
@@ -36,12 +36,14 @@ export default function HomePage() {
 
   const displayCoins = activeTab === 'new' 
     ? coins 
-    : coins?.slice(0, 5); // Just a placeholder filter for "Graduated" since we don't have real graduation logic yet
+    : activeTab === 'graduated'
+      ? coins?.slice(0, 5) // Placeholder for Graduated
+      : []; // Placeholder for Boosted
 
   return (
     <div className="p-4 space-y-6 pb-24">
       <header className="flex justify-between items-center py-2">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] bg-clip-text text-transparent">
           Forgecast
         </h1>
         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -50,10 +52,10 @@ export default function HomePage() {
       </header>
 
       {/* Tabs */}
-      <div className="flex space-x-2 border-b border-border pb-1">
+      <div className="flex space-x-2 border-b border-border pb-1 overflow-x-auto">
         <button
           onClick={() => setActiveTab('new')}
-          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+          className={`px-4 py-2 text-sm font-medium transition-colors relative whitespace-nowrap ${
             activeTab === 'new' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -64,12 +66,23 @@ export default function HomePage() {
         </button>
         <button
           onClick={() => setActiveTab('graduated')}
-          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+          className={`px-4 py-2 text-sm font-medium transition-colors relative whitespace-nowrap ${
             activeTab === 'graduated' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           Graduated
           {activeTab === 'graduated' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('boosted')}
+          className={`px-4 py-2 text-sm font-medium transition-colors relative whitespace-nowrap ${
+            activeTab === 'boosted' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Boosted
+          {activeTab === 'boosted' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
           )}
         </button>
@@ -83,6 +96,10 @@ export default function HomePage() {
         ) : error ? (
           <div className="text-center py-8 text-red-500">
             Failed to load coins.
+          </div>
+        ) : activeTab === 'boosted' ? (
+          <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed border-border">
+            <p className="text-muted-foreground text-sm">Boosted coins coming soon</p>
           </div>
         ) : !displayCoins || displayCoins.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">

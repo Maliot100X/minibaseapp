@@ -3,9 +3,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import sdk from '@farcaster/miniapp-sdk';
 import Image from 'next/image';
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { useQuery } from '@tanstack/react-query';
-import { Layers, Wallet } from 'lucide-react';
+import { Layers, Wallet, RefreshCw, MessageSquare, LogOut } from 'lucide-react';
+
+// PAYMENT LAYER PREP
+const SIGN_IN_FEE = 0.20; // USD
+const TREASURY_ADDRESS = '0x0000000000000000000000000000000000000000'; // TODO: Replace with provided Zora ETH wallet
+const FEE_DISTRIBUTION = {
+  treasury: 1.0, // 100% to treasury initially
+};
 
 type FrameContext = Awaited<typeof sdk.context>;
 
@@ -36,11 +43,15 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { address, isConnected } = useAccount();
+  
+  const { address, isConnected, isConnecting } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { connect, connectors } = useConnect();
+  
   const [activeTab, setActiveTab] = useState<'created' | 'holdings'>('created');
 
   // Fetch created coins
-  const { data: createdCoins, isLoading: loadingCreated } = useQuery<CoinLog[]>({
+  const { data: createdCoins, isLoading: loadingCreated, refetch: refetchCreated } = useQuery<CoinLog[]>({
     queryKey: ['created-coins', address],
     queryFn: async () => {
       if (!address) return [];
@@ -52,7 +63,7 @@ export default function ProfilePage() {
   });
 
   // Fetch holdings
-  const { data: holdings, isLoading: loadingHoldings } = useQuery<CoinLog[]>({
+  const { data: holdings, isLoading: loadingHoldings, refetch: refetchHoldings } = useQuery<CoinLog[]>({
     queryKey: ['holdings', address],
     queryFn: async () => {
       if (!address) return [];
@@ -86,6 +97,7 @@ export default function ProfilePage() {
 
   const fetchProfile = async (fid: number) => {
     try {
+      setLoading(true);
       const res = await fetch(`/api/user?fid=${fid}`);
       if (!res.ok) throw new Error('Failed to fetch profile');
       const data = await res.json();
@@ -100,12 +112,15 @@ export default function ProfilePage() {
 
   const handleSync = useCallback(() => {
     if (context?.user?.fid) {
-      setLoading(true);
       fetchProfile(context.user.fid);
     }
-  }, [context]);
+    if (address) {
+        refetchCreated();
+        refetchHoldings();
+    }
+  }, [context, address, refetchCreated, refetchHoldings]);
 
-  if (loading) {
+  if (loading && !profile) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -115,7 +130,16 @@ export default function ProfilePage() {
 
   return (
     <div className="p-4 space-y-6 pb-24">
-      <h1 className="text-2xl font-bold">Profile</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Profile</h1>
+        <button 
+          onClick={handleSync}
+          className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
+          title="Sync Profile"
+        >
+          <RefreshCw size={20} />
+        </button>
+      </div>
       
       {error && (
         <div className="p-4 bg-red-50 text-red-500 rounded-lg">
@@ -145,23 +169,50 @@ export default function ProfilePage() {
             <div className="pt-2 border-t border-border">
               <p className="text-xs text-muted-foreground">Farcaster ID: <span className="font-mono text-foreground">{profile.fid}</span></p>
             </div>
-            {address && (
-              <div className="text-xs text-muted-foreground bg-muted p-2 rounded break-all">
-                {address}
-              </div>
-            )}
           </div>
         </div>
       )}
 
+      {/* Wallet Section */}
+      <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+        <h3 className="font-semibold flex items-center gap-2">
+          <Wallet size={18} />
+          Wallet Status
+        </h3>
+        
+        {isConnected ? (
+          <div className="space-y-3">
+             <div className="text-sm text-muted-foreground bg-muted p-2 rounded break-all font-mono">
+                {address}
+              </div>
+              <button
+                onClick={() => disconnect()}
+                className="flex items-center space-x-2 text-sm text-red-500 hover:text-red-600"
+              >
+                <LogOut size={14} />
+                <span>Disconnect</span>
+              </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+             <p className="text-sm text-muted-foreground">Connect to view assets</p>
+             <div className="flex flex-col gap-2">
+              {connectors.map((connector) => (
+                <button
+                  key={connector.uid}
+                  onClick={() => connect({ connector })}
+                  className="px-4 py-2 text-sm font-medium text-primary bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors text-left"
+                >
+                  Connect {connector.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {!isConnected ? (
-        <div className="bg-muted/50 rounded-xl p-8 text-center space-y-3">
-          <Wallet className="w-12 h-12 mx-auto text-muted-foreground" />
-          <h3 className="font-semibold">Connect Wallet</h3>
-          <p className="text-sm text-muted-foreground">
-            Connect your wallet to view your created coins and holdings.
-          </p>
-        </div>
+        null // Already showed connect options above
       ) : (
         <div className="space-y-4">
           <div className="flex space-x-2 border-b border-border pb-1">
@@ -223,12 +274,14 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <button
-        onClick={handleSync}
-        className="w-full bg-secondary text-secondary-foreground py-3 rounded-lg font-medium hover:opacity-90 transition-opacity mt-4"
-      >
-        Sync Profile
-      </button>
+      {/* AI Chat Placeholder */}
+      <div className="bg-gradient-to-r from-purple-900/10 to-blue-900/10 border border-dashed border-primary/30 rounded-xl p-6 text-center space-y-2">
+        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+          <MessageSquare size={24} />
+        </div>
+        <h3 className="font-semibold text-sm">AI Agent</h3>
+        <p className="text-xs text-muted-foreground">Chat with your onchain agent coming in Phase 4.</p>
+      </div>
     </div>
   );
 }
